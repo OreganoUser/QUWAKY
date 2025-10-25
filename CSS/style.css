@@ -1,5 +1,118 @@
+:root{
+  /* Replace this with your own image if you like */
+  --bg-image: url("../assets/fisch.jpg");
+  --surface: rgba(0,0,0,.35);
+  --border: rgba(255,255,255,.22);
+  --accent: #7bdff2;
+  --accent-2: #f7d6e0;
+  --text: #ffffff;
+}
+
+* { box-sizing: border-box; }
+html, body { height: 100%; }
 body {
-  background-color: black;
-  color: white;
-  justify-content: center;
+  margin: 0;
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+  color: var(--text);
+  background: #0b1220;
+}
+
+/* Full-bleed hero with background image & overlay */
+.hero {
+  position: relative;
+  min-height: 100svh; /* safe viewport for mobile */
+  display: grid;
+  place-items: center;
+  text-align: center;
+  padding: clamp(16px, 4vw, 48px);
+  overflow: hidden;
+  isolation: isolate;
+}
+.hero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(180deg, rgba(0,0,0,.45), rgba(0,0,0,.55)),
+    var(--bg-image) center / cover no-repeat;
+  z-index: -2;
+  transform: scale(1.02);
+  filter: saturate(1.08) contrast(1.05);
+}
+/* Soft grain for depth (optional) */
+.hero::after {
+  content: "";
+  position: absolute;
+  inset: -20%;
+  background: radial-gradient(rgba(255,255,255,.05), transparent 60%) center/200px 200px repeat;
+  mix-blend-mode: overlay;
+  pointer-events: none;
+  z-index: -1;
+}
+
+.card {
+  max-width: 68rem;
+  width: min(92vw, 900px);
+  padding: clamp(20px, 4vw, 40px);
+  border-radius: 24px;
+  background: color-mix(in oklab, var(--surface) 80%, transparent);
+  border: 1px solid var(--border);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow:
+    0 10px 30px rgba(0,0,0,.35),
+    inset 0 1px 0 rgba(255,255,255,.06);
+}
+
+.eyebrow {
+  display: inline-block;
+  font-size: clamp(.75rem, .5vw + .6rem, .95rem);
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  opacity: .9;
+  padding: .35rem .7rem;
+  border-radius: 999px;
+  background:
+    linear-gradient(90deg, color-mix(in oklab, var(--accent) 75%, transparent),
+                            color-mix(in oklab, var(--accent-2) 75%, transparent));
+  color: #0b1220;
+  border: 1px solid rgba(255,255,255,.35);
+}
+
+h1 {
+  margin: .8rem 0 0;
+  font-weight: 800;
+  line-height: 1.05;
+  letter-spacing: .02em;
+  font-size: clamp(2.2rem, 6vw + 1rem, 6.5rem);
+  text-shadow: 0 8px 28px rgba(0,0,0,.35);
+}
+
+/* Bouncing text */
+.bounce {
+  display: inline-block;
+  will-change: transform;
+  animation: bounce 2.4s infinite;
+  transform-origin: center bottom;
+}
+@keyframes bounce {
+  0%, 100% { transform: translateY(0); }
+  20%      { transform: translateY(-16px); }
+  40%      { transform: translateY(0); }
+  60%      { transform: translateY(-8px); }
+  80%      { transform: translateY(0); }
+}
+
+.tagline {
+  margin: clamp(.6rem, 2.2vw, 1rem) auto 0;
+  max-width: 65ch;
+  font-size: clamp(1rem, 1.2vw + .9rem, 1.4rem);
+  line-height: 1.5;
+  opacity: .95;
+  text-wrap: balance;
+}
+
+/* Respect users who prefer reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .bounce { animation: none; }
 }
