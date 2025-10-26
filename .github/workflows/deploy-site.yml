@@ -17,10 +17,20 @@ jobs:
           username: ${{ vars.USER }}
           key: ${{ secrets.SSH_KEY }}
           port: ${{ secrets.SSH_PORT || 22 }}
-          source: "."
+          source: |
+            index.html
+            CSS/**
+            JS/**
+            Assets/**
+            *.ico
+            *.png
+            *.jpg
+            *.svg
           target: ${{ vars.DEST }}
           strip_components: 0
           overwrite: true
+          rm: true
+
 
       - name: Reload Caddy
         uses: appleboy/ssh-action@v1.0.3
