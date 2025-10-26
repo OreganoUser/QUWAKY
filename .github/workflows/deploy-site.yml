@@ -10,27 +10,16 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Upload files via SCP
-        uses: appleboy/scp-action@v0.1.7
+      - name: Deploy via rsync (exclude junk)
+        uses: burnett01/rsync-deployments@6.0.0
         with:
-          host: ${{ vars.HOST }}
-          username: ${{ vars.USER }}
-          key: ${{ secrets.SSH_KEY }}
-          port: ${{ secrets.SSH_PORT || 22 }}
-          source: |
-            index.html
-            CSS/**
-            JS/**
-            Assets/**
-            *.ico
-            *.png
-            *.jpg
-            *.svg
-          target: ${{ vars.DEST }}
-          strip_components: 0
-          overwrite: true
-          rm: true
-
+          switches: -avzr --delete --chmod=D755,F644 --exclude=".git*" --exclude=".github*" --exclude="README.md"
+          path: ./
+          remote_path: ${{ vars.DEST }}/
+          remote_host: ${{ vars.HOST }}
+          remote_user: ${{ vars.USER }}
+          remote_key: ${{ secrets.SSH_KEY }}
+          remote_port: ${{ secrets.SSH_PORT || 22 }}
 
       - name: Reload Caddy
         uses: appleboy/ssh-action@v1.0.3
@@ -39,5 +28,4 @@ jobs:
           username: ${{ vars.USER }}
           key: ${{ secrets.SSH_KEY }}
           port: ${{ secrets.SSH_PORT || 22 }}
-          script: |
-            sudo systemctl reload caddy || true
+          script: sudo systemctl reload caddy || true
