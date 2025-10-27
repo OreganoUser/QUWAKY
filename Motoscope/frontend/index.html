@@ -1,0 +1,396 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>MotoScope — MotoGP Dashboard</title>
+  <meta name="description" content="Live MotoGP standings, riders, teams, circuits, archives, and predictions (no-money)." />
+  <link rel="stylesheet" href="CSS/style.css" />
+
+  <!-- Fonts (optional): drop if offline -->
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+
+  <!-- Favicons (optional) -->
+  <link rel="icon" href="Assets/fisch.jpg">
+</head>
+
+<body>
+  <!-- ===== Top Bar / Header ===== -->
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="brand" href="#top" aria-label="MotoScope home">
+        <span class="brand-dot" aria-hidden="true"></span>
+        <span class="brand-text">MotoScope</span>
+      </a>
+
+      <form id="globalSearchForm" class="search" role="search" aria-label="Search archive">
+        <input id="globalSearch" name="q" type="search" placeholder="Search riders, teams, circuits…" autocomplete="off" />
+        <button id="btnSearch" type="submit" title="Search">Search</button>
+      </form>
+
+      <nav class="nav" aria-label="Primary">
+        <button id="btnMenu" class="btn-menu" aria-expanded="false" aria-controls="mainNav">☰</button>
+        <ul id="mainNav" class="nav-list">
+          <li><a href="#standings">Standings</a></li>
+          <li><a href="#riders">Riders</a></li>
+          <li><a href="#teams">Teams</a></li>
+          <li><a href="#circuits">Circuits</a></li>
+          <li><a href="#schedule">Schedule</a></li>
+          <li><a href="#archive">Archive</a></li>
+          <li><a href="#predictions">Gambling</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <!-- ===== Hero / Status Bar ===== -->
+  <section class="hero" id="top">
+    <div class="container hero-inner">
+      <div class="hero-copy">
+        <h1>MotoGP, all in one place.</h1>
+        <p id="seasonLabel">Season <span data-bind="season-year">—</span> • Round <span data-bind="season-round">—</span></p>
+        <div class="hero-cta">
+          <a href="#standings" class="btn">View Standings</a>
+          <a href="#predictions" class="btn btn-ghost">Make Predictions</a>
+        </div>
+      </div>
+      <div class="hero-stats" aria-live="polite">
+        <!-- Live ticker / quick stats (fill via JS) -->
+        <div class="stat">
+          <span class="label">Next GP</span>
+          <span class="value" data-bind="next-gp-name">—</span>
+          <span class="muted" data-bind="next-gp-date">—</span>
+        </div>
+        <div class="stat">
+          <span class="label">Location</span>
+          <span class="value" data-bind="next-gp-location">—</span>
+        </div>
+        <div class="stat">
+          <span class="label">Sessions</span>
+          <span class="value" data-bind="next-gp-sessions">—</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <main>
+    <!-- ===== Standings ===== -->
+    <section id="standings" class="section">
+      <div class="container">
+        <header class="section-header">
+          <h2>Current Championship Standings</h2>
+          <div class="controls">
+            <label for="standingsClass">Class</label>
+            <select id="standingsClass">
+              <option value="motogp" selected>MotoGP</option>
+              <option value="moto2">Moto2</option>
+              <option value="moto3">Moto3</option>
+            </select>
+            <button id="refreshStandings" class="btn btn-small">Refresh</button>
+          </div>
+        </header>
+
+        <div class="table-wrap">
+          <table id="standingsTable" class="table" aria-describedby="standingsHelp">
+            <thead>
+              <tr>
+                <th scope="col">Pos</th>
+                <th scope="col">Rider</th>
+                <th scope="col" class="hide-sm">Team</th>
+                <th scope="col">Points</th>
+                <th scope="col" class="hide-sm">Wins</th>
+                <th scope="col" class="hide-sm">Podiums</th>
+              </tr>
+            </thead>
+            <tbody id="standingsBody">
+              <!-- JS fills rows; show skeleton by default -->
+              <tr class="skeleton"><td colspan="6">Loading standings…</td></tr>
+            </tbody>
+          </table>
+          <p id="standingsHelp" class="muted">Data updates after each session; switch classes above.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== Riders ===== -->
+    <section id="riders" class="section alt">
+      <div class="container">
+        <header class="section-header">
+          <h2>Active Riders</h2>
+          <div class="controls">
+            <input id="riderFilter" type="search" placeholder="Filter riders…" />
+            <select id="riderClass">
+              <option value="motogp" selected>MotoGP</option>
+              <option value="moto2">Moto2</option>
+              <option value="moto3">Moto3</option>
+              <option value="test">Test Riders</option>
+            </select>
+          </div>
+        </header>
+
+        <div id="riderGrid" class="grid cards">
+          <!-- Card template (clone via JS) -->
+          <!--
+          <article class="card rider" data-id="">
+            <header>
+              <img class="avatar" src="" alt="Rider portrait" />
+              <h3 class="card-title">Rider Name</h3>
+              <p class="muted">#Number • Country</p>
+            </header>
+            <dl class="meta">
+              <div><dt>Team</dt><dd>Team Name</dd></div>
+              <div><dt>Bike</dt><dd>Manufacturer</dd></div>
+              <div><dt>Age</dt><dd>—</dd></div>
+            </dl>
+            <footer class="card-actions">
+              <button class="btn btn-ghost" data-action="view-rider">Profile</button>
+              <button class="btn btn-ghost" data-action="add-favorite">☆ Favorite</button>
+            </footer>
+          </article>
+          -->
+        </div>
+
+        <div class="pager">
+          <button id="ridersPrev" class="btn btn-small" disabled>Prev</button>
+          <span id="ridersPage" class="muted">Page —</span>
+          <button id="ridersNext" class="btn btn-small" disabled>Next</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== Teams ===== -->
+    <section id="teams" class="section">
+      <div class="container">
+        <header class="section-header">
+          <h2>Teams & Manufacturers</h2>
+          <div class="controls">
+            <select id="teamClass">
+              <option value="motogp" selected>MotoGP</option>
+              <option value="moto2">Moto2</option>
+              <option value="moto3">Moto3</option>
+            </select>
+          </div>
+        </header>
+
+        <div id="teamList" class="accordion">
+          <!-- JS injects accordion items -->
+          <!--
+          <details class="acc-item" open>
+            <summary><strong>Team Name</strong> • Manufacturer</summary>
+            <div class="acc-body">
+              <div class="two-col">
+                <div>
+                  <h4>Riders</h4>
+                  <ul class="bullets">
+                    <li>Rider A</li>
+                    <li>Rider B</li>
+                  </ul>
+                </div>
+                <div>
+                  <h4>Stats</h4>
+                  <p>Titles: — • Wins: — • Podiums: —</p>
+                </div>
+              </div>
+            </div>
+          </details>
+          -->
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== Circuits ===== -->
+    <section id="circuits" class="section alt">
+      <div class="container">
+        <header class="section-header">
+          <h2>Circuits</h2>
+          <div class="controls">
+            <input id="circuitFilter" type="search" placeholder="Filter circuits…" />
+            <select id="circuitSort">
+              <option value="name" selected>Name</option>
+              <option value="country">Country</option>
+              <option value="length">Length</option>
+            </select>
+          </div>
+        </header>
+
+        <div id="circuitGrid" class="grid circuits">
+          <!-- JS fills circuit cards with map thumbnails, stats, and session dates -->
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== Schedule ===== -->
+    <section id="schedule" class="section">
+      <div class="container">
+        <header class="section-header">
+          <h2>Season Schedule</h2>
+          <div class="controls">
+            <label for="seasonSelect">Season</label>
+            <select id="seasonSelect"></select>
+          </div>
+        </header>
+
+        <div class="table-wrap">
+          <table id="scheduleTable" class="table">
+            <thead>
+              <tr>
+                <th scope="col">Round</th>
+                <th scope="col">Grand Prix</th>
+                <th scope="col">Date</th>
+                <th scope="col" class="hide-sm">Circuit</th>
+                <th scope="col">Local Time</th>
+              </tr>
+            </thead>
+            <tbody id="scheduleBody">
+              <tr class="skeleton"><td colspan="5">Loading schedule…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== Archive ===== -->
+    <section id="archive" class="section alt">
+      <div class="container">
+        <header class="section-header">
+          <h2>Archive — Riders, Teams, Bikes, Circuits, Champions</h2>
+          <div class="controls">
+            <select id="archiveType">
+              <option value="riders" selected>Riders</option>
+              <option value="teams">Teams</option>
+              <option value="bikes">Motorcycles</option>
+              <option value="circuits">Circuits</option>
+              <option value="champions">Champions</option>
+              <option value="stories">Stories</option>
+            </select>
+            <input id="archiveFilter" type="search" placeholder="Filter archive…" />
+            <button id="btnImportStories" class="btn btn-small">Import Stories</button>
+          </div>
+        </header>
+
+        <div id="archiveList" class="list">
+          <!-- JS fills result list; click → detail drawer -->
+        </div>
+
+        <aside id="archiveDetail" class="drawer" aria-hidden="true" aria-labelledby="archiveDetailTitle">
+          <button class="drawer-close" data-action="close-drawer" aria-label="Close">×</button>
+          <h3 id="archiveDetailTitle">Title</h3>
+          <p class="muted" id="archiveDetailMeta">—</p>
+          <div id="archiveDetailBody" class="prose">
+            <!-- rich story content -->
+          </div>
+          <div class="drawer-actions">
+            <button class="btn btn-ghost" id="btnOpenSource" disabled>Open Source</button>
+            <button class="btn" id="btnSaveStory" disabled>Save</button>
+          </div>
+        </aside>
+        <div class="overlay" data-action="close-drawer"></div>
+      </div>
+    </section>
+
+    <!-- ===== Predictions (No Money) ===== -->
+    <section id="predictions" class="section">
+      <div class="container">
+        <header class="section-header">
+          <h2>Gambling</h2>
+          <p class="muted">Pick finishing positions before lights out. Score points, flex on your friends. No real currency involved.</p>
+          <div class="controls">
+            <label for="predictRound">Round</label>
+            <select id="predictRound"></select>
+            <button id="btnLoadGrid" class="btn btn-small">Load Grid</button>
+          </div>
+        </header>
+
+        <div class="predict-layout">
+          <section aria-labelledby="gridTitle" class="predict-pool">
+            <h3 id="gridTitle">Grid</h3>
+            <ul id="gridPool" class="chips" aria-live="polite">
+              <!-- draggable rider chips added by JS -->
+            </ul>
+          </section>
+
+          <section aria-labelledby="orderTitle" class="predict-order">
+            <h3 id="orderTitle">Your Order</h3>
+            <ol id="finishOrder" class="slots">
+              <!-- JS creates N droppable slots -->
+            </ol>
+            <div class="predict-actions">
+              <button id="btnClearPrediction" class="btn btn-ghost btn-small">Clear</button>
+              <button id="btnSubmitPrediction" class="btn btn-small">Submit</button>
+            </div>
+          </section>
+
+          <aside class="predict-sidebar">
+            <h4>Leaderboard</h4>
+            <ul id="leaderboard" class="bullets small">
+              <!-- populated via JS -->
+            </ul>
+          </aside>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ===== Footer ===== -->
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <p>Built for MotoGP fans. This site uses public APIs where available and a custom archive database.</p>
+      <div class="footer-actions">
+        <label class="switch">
+          <input id="toggleTheme" type="checkbox" />
+          <span>Dark mode</span>
+        </label>
+        <button id="btnScrollTop" class="btn btn-ghost btn-small">↑ Top</button>
+      </div>
+    </div>
+  </footer>
+
+  <!-- ===== Templates (clone with JS) ===== -->
+  <template id="tmplRiderCard">
+    <article class="card rider" data-id="">
+      <header>
+        <img class="avatar" src="" alt="" />
+        <h3 class="card-title"></h3>
+        <p class="muted rider-sub"></p>
+      </header>
+      <dl class="meta">
+        <div><dt>Team</dt><dd class="rider-team">—</dd></div>
+        <div><dt>Bike</dt><dd class="rider-bike">—</dd></div>
+        <div><dt>Age</dt><dd class="rider-age">—</dd></div>
+      </dl>
+      <footer class="card-actions">
+        <button class="btn btn-ghost" data-action="view-rider">Profile</button>
+        <button class="btn btn-ghost" data-action="add-favorite">☆ Favorite</button>
+      </footer>
+    </article>
+  </template>
+
+  <template id="tmplCircuitCard">
+    <article class="card circuit" data-id="">
+      <header>
+        <div class="map ph"></div>
+        <h3 class="card-title"></h3>
+        <p class="muted circuit-country"></p>
+      </header>
+      <dl class="meta">
+        <div><dt>Length</dt><dd class="circuit-length">—</dd></div>
+        <div><dt>Turns</dt><dd class="circuit-turns">—</dd></div>
+        <div><dt>Record</dt><dd class="circuit-record">—</dd></div>
+      </dl>
+    </article>
+  </template>
+
+  <!-- ===== Scripts (add your logic here) =====
+    Load jQuery, then your scripts. Example:
+
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-..." crossorigin="anonymous"></script>
+    <script src="app.js"></script>
+
+    In app.js, hit your APIs and fill the DOM using the IDs/classes above.
+  -->
+
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+  <script src="JS/script.js"></script>
+</body>
+</html>

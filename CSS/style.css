@@ -1,6 +1,6 @@
 :root{
   /* Replace this with your own image if you like */
-  --bg-image: url("../assets/jillCharel.jpg");
+  --bg-image: url("../assets/fisch.jpg");
   --surface: rgba(0,0,0,.35);
   --border: rgba(255,255,255,.22);
   --accent: #7bdff2;
@@ -16,10 +16,49 @@ body {
   margin: 0;
   font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
   color: var(--text);
-  background: #000000;
+  background: #000;
 }
 
-/* Full-bleed hero with background image & overlay */
+/* ── Fixed Top Nav ───────────────────────────────────────── */
+.nav {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  background: rgba(10, 10, 14, 0.35);
+  border-bottom: 1px solid rgba(255,255,255,.12);
+  z-index: 10;
+}
+
+.nav .brand {
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-decoration: none;
+  color: var(--text);
+}
+
+.nav .links {
+  display: flex;
+  gap: clamp(10px, 2vw, 24px);
+}
+
+.nav .links a {
+  color: var(--text);
+  text-decoration: none;
+  font-weight: 600;
+  opacity: .9;
+}
+.nav .links a:hover { opacity: 1; }
+
+/* Push content below fixed nav */
+.hero, .wrap { padding-top: 64px; }
+
+/* ── Hero with background image (no white dots) ─────────── */
 .hero {
   position: relative;
   min-height: 100svh; /* safe viewport for mobile */
@@ -31,44 +70,32 @@ body {
   isolation: isolate;
 }
 
-/* Soft grain for depth (optional) */
-.hero::after {
+/* Background image + soft dark overlay */
+.hero::before {
   content: "";
   position: absolute;
-  inset: -20%;
-  background: radial-gradient(rgba(255,255,255,.05), transparent 60%) center/200px 200px repeat;
-  mix-blend-mode: overlay;
-  pointer-events: none;
+  inset: 0;
+  background:
+    linear-gradient(to bottom, rgba(0,0,0,.45), rgba(0,0,0,.55)),
+    var(--bg-image) center / cover no-repeat fixed;
   z-index: -1;
 }
 
+/* REMOVE the old grain layer entirely (was causing the white dots) */
+/* .hero::after { display: none; } */
+
+/* ── Card (visuals removed but spacing kept) ────────────── */
 .card {
   max-width: 68rem;
   width: min(92vw, 900px);
   padding: clamp(20px, 4vw, 40px);
-  border-radius: 24px;
-  background: color-mix(in oklab, var(--surface) 80%, transparent);
-  border: 1px solid var(--border);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  box-shadow:
-    0 10px 30px rgba(0,0,0,.35),
-    inset 0 1px 0 rgba(255,255,255,.06);
-}
 
-.eyebrow {
-  display: inline-block;
-  font-size: clamp(.75rem, .5vw + .6rem, .95rem);
-  letter-spacing: .12em;
-  text-transform: uppercase;
-  opacity: .9;
-  padding: .35rem .7rem;
-  border-radius: 999px;
-  background:
-    linear-gradient(90deg, color-mix(in oklab, var(--accent) 75%, transparent),
-                            color-mix(in oklab, var(--accent-2) 75%, transparent));
-  color: #0b1220;
-  border: 1px solid rgba(255,255,255,.35);
+  /* Make it invisible but keep layout behavior */
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }
 
 h1 {
@@ -95,16 +122,35 @@ h1 {
   80%      { transform: translateY(0); }
 }
 
-.tagline {
-  margin: clamp(.6rem, 2.2vw, 1rem) auto 0;
-  max-width: 65ch;
-  font-size: clamp(1rem, 1.2vw + .9rem, 1.4rem);
-  line-height: 1.5;
-  opacity: .95;
-  text-wrap: balance;
+/* ── Gallery under the text ─────────────────────────────── */
+.wrap {
+  margin-inline: auto;
+  width: min(1200px, 92vw);
+}
+
+.gallery {
+  display: grid;
+  gap: clamp(8px, 1.2vw, 14px);
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  padding: clamp(16px, 3vw, 32px) 0 48px;
+}
+
+.gallery img {
+  width: 100%;
+  height: 260px;
+  object-fit: cover;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,.12);
+  transition: transform .2s ease, box-shadow .2s ease;
+}
+
+.gallery img:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 26px rgba(0,0,0,.35);
 }
 
 /* Respect users who prefer reduced motion */
 @media (prefers-reduced-motion: reduce) {
   .bounce { animation: none; }
+  .gallery img { transition: none; }
 }
