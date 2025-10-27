@@ -1,4 +1,5 @@
 name: Build & Deploy Motoscope API (GHCR)
+
 on:
   push:
     branches: [ "main" ]
@@ -10,12 +11,22 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      packages: write
+      packages: write   # build & push from the runner; read is implied
+
+    env:
+      IMAGE_BASENAME: motoscope-api
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Log in to GHCR
+      - name: Compute lowercase owner
+        id: names
+        run: |
+          owner_lc="$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')"
+          echo "owner_lc=$owner_lc" >> $GITHUB_OUTPUT
+
+      - name: Log in to GHCR (runner)
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
@@ -28,10 +39,10 @@ jobs:
           context: ./Motoscope/motoscope-api
           push: true
           tags: |
-            ghcr.io/${{ github.repository_owner }}/motoscope-api:latest
-            ghcr.io/${{ github.repository_owner }}/motoscope-api:${{ github.sha }}
+            ghcr.io/${{ steps.names.outputs.owner_lc }}/${{ env.IMAGE_BASENAME }}:latest
+            ghcr.io/${{ steps.names.outputs.owner_lc }}/${{ env.IMAGE_BASENAME }}:${{ github.sha }}
 
-      - name: SSH & update container
+      - name: SSH & update container on server
         uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ secrets.SSH_HOST }}
@@ -39,9 +50,20 @@ jobs:
           key: ${{ secrets.SSH_KEY }}
           port: ${{ secrets.SSH_PORT }}
           script: |
-            set -e
-            docker login ghcr.io -u ${{ github.actor }} -p ${{ secrets.GITHUB_TOKEN }}
-            docker pull ghcr.io/${{ github.repository_owner }}/motoscope-api:latest
+            set -euo pipefail
+            owner_lc=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
+            image="ghcr.io/${owner_lc}/${{ env.IMAGE_BASENAME }}:latest"
+
+            # Login on the SERVER using a PAT with read:packages
+            docker login ghcr.io -u "${owner_lc}" -p "${{ secrets.GHCR_PAT }}"
+
+            docker pull "$image"
+
             cd /srv/motoscope-api/Motoscope/motoscope-api
-            docker compose up -d
+
+            # Make sure your compose file uses the SAME lowercase image.
+            # Then redeploy and clean orphans.
+            docker compose up -d --remove-orphans
+
+            # Optional cleanup
             docker image prune -f
