@@ -1,0 +1,9 @@
+version: "3.9"
+services:
+  api:
+    image: ghcr.io/<YOUR_GH_USERNAME>/motoscope-api:latest
+    container_name: motoscope-api
+    env_file: .env
+    ports:
+      - "3001:3001"
+    restart: unless-stopped
