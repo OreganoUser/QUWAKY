@@ -5,17 +5,16 @@ on:
     branches: [ "main" ]
     paths:
       - "Motoscope/motoscope-api/**"
+  workflow_dispatch: {}
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      packages: write   # build & push from the runner; read is implied
-
+      packages: write
     env:
       IMAGE_BASENAME: motoscope-api
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -37,6 +36,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: ./Motoscope/motoscope-api
+          file: ./Motoscope/motoscope-api/Dockerfile
           push: true
           tags: |
             ghcr.io/${{ steps.names.outputs.owner_lc }}/${{ env.IMAGE_BASENAME }}:latest
@@ -45,25 +45,22 @@ jobs:
       - name: SSH & update container on server
         uses: appleboy/ssh-action@v1.2.0
         with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USER }}
-          key: ${{ secrets.SSH_KEY }}
-          port: ${{ secrets.SSH_PORT }}
+          host: ${{ secrets.SSH_HOST_API }}
+          username: ${{ secrets.SSH_USER_API }}     # deploy
+          key: ${{ secrets.SSH_KEY_API }}           # deploy’s PRIVATE key
+          port: ${{ secrets.SSH_PORT_API }}
           script: |
             set -euo pipefail
             owner_lc=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
             image="ghcr.io/${owner_lc}/${{ env.IMAGE_BASENAME }}:latest"
 
-            # Login on the SERVER using a PAT with read:packages
-            docker login ghcr.io -u "${owner_lc}" -p "${{ secrets.GHCR_PAT }}"
+            # If package is private, login with PAT
+            if [ -n "${{ secrets.GHCR_PAT }}" ]; then
+              docker login ghcr.io -u "${owner_lc}" -p "${{ secrets.GHCR_PAT }}"
+            fi
 
             docker pull "$image"
 
             cd /srv/motoscope-api/Motoscope/motoscope-api
-
-            # Make sure your compose file uses the SAME lowercase image.
-            # Then redeploy and clean orphans.
             docker compose up -d --remove-orphans
-
-            # Optional cleanup
             docker image prune -f
