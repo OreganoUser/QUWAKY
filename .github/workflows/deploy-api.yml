@@ -64,3 +64,4 @@ jobs:
             cd /srv/motoscope-api/Motoscope/motoscope-api
             docker compose up -d --remove-orphans
             docker image prune -f
+            
