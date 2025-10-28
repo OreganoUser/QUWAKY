@@ -1,31 +1,43 @@
-name: Deploy Site
+name: Deploy Website (rsync)
+
 on:
   push:
-    branches: [ main ]
+    branches: [ "main" ]
+    paths:
+      - "index.html"
+      - "CSS/**"
+      - "assets/**"
+      - ".github/workflows/deploy-site.yml"
+  workflow_dispatch: {}
 
 jobs:
-  deploy:
+  deploy-site:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Deploy via rsync (exclude junk)
+      # Sanity: can we SSH with the provided secret?
+      - name: SSH smoke test
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.SSH_HOST_WEB }}
+          username: ${{ secrets.SSH_USER_WEB }}
+          key: ${{ secrets.SSH_KEY_WEB }}
+          port: ${{ secrets.SSH_PORT_WEB }}
+          script: |
+            whoami
+            echo "SSH OK on $(hostname)"
+
+      # Deploy with rsync (action)
+      - name: Rsync deploy
         uses: burnett01/rsync-deployments@6.0.0
         with:
-          switches: -avzr --delete --chmod=D755,F644 --exclude=".git*" --exclude=".github*" --exclude="README.md"
+          switches: -azvr --delete --chmod=Du=rwx,Dg=rx,Do=rx,Fu=rw,Fg=r,Fo=r
           path: ./
-          remote_path: ${{ vars.DEST }}/
-          remote_host: ${{ vars.HOST }}
-          remote_user: ${{ vars.USER }}
-          remote_key: ${{ secrets.SSH_KEY }}
-          remote_port: ${{ secrets.SSH_PORT || 22 }}
-
-      - name: Reload Caddy
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ vars.HOST }}
-          username: ${{ vars.USER }}
-          key: ${{ secrets.SSH_KEY }}
-          port: ${{ secrets.SSH_PORT || 22 }}
-          script: sudo systemctl reload caddy || true
+          remote_path: /var/www/quwaky        # <-- your web root
+          remote_host: ${{ secrets.SSH_HOST_WEB }}
+          remote_user: ${{ secrets.SSH_USER_WEB }}
+          remote_key: ${{ secrets.SSH_KEY_WEB }}
+          remote_port: ${{ secrets.SSH_PORT_WEB }}
