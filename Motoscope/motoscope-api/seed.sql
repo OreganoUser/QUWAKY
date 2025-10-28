@@ -15,6 +15,7 @@ SET name=EXCLUDED.name,
     country=EXCLUDED.country,
     length_km=EXCLUDED.length_km,
     laps=EXCLUDED.laps;
+    
 
 -- === Event (unique on season_id, round) ======================================
 INSERT INTO events (season_id, round, gp_name, circuit_id, start_date, end_date)
