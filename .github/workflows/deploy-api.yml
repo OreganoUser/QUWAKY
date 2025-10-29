@@ -64,3 +64,16 @@ jobs:
             cd /srv/motoscope-api/Motoscope/motoscope-api
             docker compose up -d --remove-orphans
             docker image prune -f
+      
+      - name: Run DB migrations on server
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.SSH_HOST_API }}
+          username: ${{ secrets.SSH_USER_API }}
+          key: ${{ secrets.SSH_KEY_API }}
+          port: ${{ secrets.SSH_PORT_API }}
+          script: |
+            set -euo pipefail
+            cd /srv/motoscope-api/Motoscope/motoscope-api
+            ./ops/migrate.sh
+
