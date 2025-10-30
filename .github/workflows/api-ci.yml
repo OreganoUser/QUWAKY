@@ -38,3 +38,18 @@ jobs:
             ghcr.io/${{ steps.names.outputs.owner_lc }}/motoscope-api:latest
             ghcr.io/${{ steps.names.outputs.owner_lc }}/motoscope-api:${{ github.sha }}
 
+      - name: ssh-ensure-stack
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.SSH_HOST_API }}
+          username: ${{ secrets.SSH_USER_API }}
+          key: ${{ secrets.SSH_KEY_API }}
+          port: ${{ secrets.SSH_PORT_API }}
+          script: |
+            set -euo pipefail
+            owner_lc=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
+            image="ghcr.io/${owner_lc}/motoscope-api:latest"
+            # docker login ghcr.io -u "${owner_lc}" -p "${{ secrets.GHCR_PAT }}" # if package private
+            docker pull "$image"
+            cd /srv/motoscope-api/Motoscope/motoscope-api
+            docker-compose -p motoscope-api up -d
