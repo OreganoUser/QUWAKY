@@ -1,11 +1,12 @@
 # File Tree: QUWAKY
 
-**Generated:** 27/10/2025, 11:12:24
+**Generated:** 30/10/2025, 11:31:58
 **Root Path:** `/Users/charel/Documents/QUWAKY`
 
 ```
 ├── 📁 .github
 │   └── 📁 workflows
+│       ├── ⚙️ deploy-api.yml
 │       └── ⚙️ deploy-site.yml
 ├── 📁 CSS
 │   └── 🎨 style.css
@@ -19,6 +20,16 @@
 │   │   │   └── 📄 script.js
 │   │   └── 🌐 index.html
 │   ├── 📁 motoscope-api
+│   │   ├── 📁 migrations
+│   │   │   ├── 📄 2025-10-28_001_add_riders.sql
+│   │   │   ├── 📄 2025-10-30_001_add_resulsts.sql
+│   │   │   └── 📄 2025-11-02_002_add_results.sql
+│   │   ├── 📁 seeds
+│   │   │   ├── 📄 2025-10-28_001_seasons_base.sql
+│   │   │   ├── 📄 2025-10-28_002_circuits_base.sql
+│   │   │   ├── 📄 2025-10-28_003_teams_base.sql
+│   │   │   ├── 📄 2025-10-30_001_circuits_base.sql
+│   │   │   └── 📄 2025-10-30_001_seasons_base.sql
 │   │   ├── 📁 src
 │   │   │   ├── 📁 plugins
 │   │   │   │   └── 📄 apikey.js
@@ -32,6 +43,8 @@
 │   │   │   ├── 📄 auth.js
 │   │   │   ├── 📄 db.js
 │   │   │   └── 📄 server.js
+│   │   ├── 🐳 Dockerfile
+│   │   ├── ⚙️ docker-compose.yml
 │   │   ├── ⚙️ package-lock.json
 │   │   ├── ⚙️ package.json
 │   │   ├── 📄 schema.sql
@@ -46,6 +59,7 @@
 │   ├── 🖼️ noRagrets.jpeg
 │   ├── 🖼️ saba.jpeg
 │   └── 🖼️ sjs.jpeg
+├── 📝 # File Tree: QUWAKY.md
 └── 🌐 index.html
 ```
 
