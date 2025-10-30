@@ -74,3 +74,28 @@ jobs:
           port: ${{ secrets.SSH_PORT_API }}
           source: "Motoscope/motoscope-api/schema.sql,Motoscope/motoscope-api/migrations/*,Motoscope/motoscope-api/seeds/*"
           target: "/srv/motoscope-api/Motoscope/motoscope-api/"
+
+      - name: ssh-run-migrations
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.SSH_HOST_API }}
+          username: ${{ secrets.SSH_USER_API }}
+          key: ${{ secrets.SSH_KEY_API }}
+          port: ${{ secrets.SSH_PORT_API }}
+          script: |
+            set -euo pipefail
+            cd /srv/motoscope-api/Motoscope/motoscope-api
+            if [ ! -x ops/migrate.sh ]; then
+              cat > ops/migrate.sh <<'EOF'
+              #!/usr/bin/env bash
+              set -euo pipefail
+              PSQL='docker-compose exec -T db psql -U motoscope_api -d motoscope'
+              TABLE_COUNT=$($PSQL -qtAc "SELECT count(*) FROM information_schema.tables WHERE table_schema='public';")
+              if [ "$TABLE_COUNT" -eq 0 ]; then echo "[migrate] Bootstrapping from schema.sql..."; $PSQL < schema.sql; fi
+              $PSQL -c "CREATE TABLE IF NOT EXISTS schema_migrations (id SERIAL PRIMARY KEY, filename TEXT UNIQUE NOT NULL, checksum TEXT NOT NULL, applied_at TIMESTAMPTZ NOT NULL DEFAULT now());"
+              apply_dir () { dir="$1"; [ -d "$dir" ] || return 0; for f in $(ls "$dir"/*.sql 2>/dev/null | sort); do [ -f "$f" ] || continue; base=$(basename "$f"); sum=$(sha256sum "$f" | awk '{print $1}'); exists=$($PSQL -qtAc "SELECT 1 FROM schema_migrations WHERE filename='${base}' AND checksum='${sum}' LIMIT 1;"); if [ "$exists" = "1" ]; then echo "[migrate] Skip ${base}"; continue; fi; echo "[migrate] Applying ${base}..."; $PSQL < "$f"; $PSQL -c "INSERT INTO schema_migrations(filename, checksum) VALUES ('${base}','${sum}') ON CONFLICT (filename) DO UPDATE SET checksum=EXCLUDED.checksum, applied_at=now();"; done; }
+              apply_dir "migrations"; apply_dir "seeds"; echo "[migrate] Done."
+              EOF
+              chmod +x ops/migrate.sh
+              fi
+              ./ops/migrate.sh
