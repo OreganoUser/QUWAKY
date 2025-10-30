@@ -28,3 +28,13 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: build-push-image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./Motoscope/motoscope-api
+          file: ./Motoscope/motoscope-api/Dockerfile
+          push: true
+          tags: |
+            ghcr.io/${{ steps.names.outputs.owner_lc }}/motoscope-api:latest
+            ghcr.io/${{ steps.names.outputs.owner_lc }}/motoscope-api:${{ github.sha }}
+
