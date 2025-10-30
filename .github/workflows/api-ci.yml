@@ -53,3 +53,15 @@ jobs:
             docker pull "$image"
             cd /srv/motoscope-api/Motoscope/motoscope-api
             docker-compose -p motoscope-api up -d
+
+      - name: ssh-prepare-dirs
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.SSH_HOST_API }}
+          username: ${{ secrets.SSH_USER_API }}
+          key: ${{ secrets.SSH_KEY_API }}
+          port: ${{ secrets.SSH_PORT_API }}
+          script: |
+            set -euo pipefail
+            mkdir -p /srv/motoscope-api/Motoscope/motoscope-api/{migrations,seeds,ops}
+
