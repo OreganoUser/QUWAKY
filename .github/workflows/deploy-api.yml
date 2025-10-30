@@ -120,3 +120,4 @@ jobs:
                             chmod +x ops/migrate.sh
                           fi
                           ./ops/migrate.sh
+                          
