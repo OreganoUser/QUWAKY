@@ -65,18 +65,16 @@ jobs:
             docker compose up -d --remove-orphans
             docker image prune -f
 
-      - name: Upload migrations & seeds to server
+      - name: Upload migrations & seeds & schema to server
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.SSH_HOST_API }}
-          username: ${{ secrets.SSH_USER_API }}
-          key: ${{ secrets.SSH_KEY_API }}
+          username: ${{ secrets.SSH_USER_API }}   # deploy
+          key: ${{ secrets.SSH_KEY_API }}         # deploy's PRIVATE key
           port: ${{ secrets.SSH_PORT_API }}
-          source: "Motoscope/motoscope-api/migrations/*,Motoscope/motoscope-api/seeds/*,Motoscope/motoscope-api/schema.sql"
+          source: "Motoscope/motoscope-api/migrations/*,Motoscope/motoscope-api/seeds/*,Motoscope/motoscope-api/schema.sql,Motoscope/motoscope-api/ops/migrate.sh"
           target: "/srv/motoscope-api/Motoscope/motoscope-api/"
 
-
-      
       - name: Run DB migrations on server
         uses: appleboy/ssh-action@v1.2.0
         with:
@@ -87,6 +85,8 @@ jobs:
           script: |
             set -euo pipefail
             cd /srv/motoscope-api/Motoscope/motoscope-api
+            chmod +x ops/migrate.sh
             ./ops/migrate.sh
+
 
 
