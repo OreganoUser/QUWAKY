@@ -11,3 +11,6 @@ jobs:
     steps:
       - name: ping
         run: echo "workflow syntax OK"
+
+      - name: checkout
+        uses: actions/checkout@v4
