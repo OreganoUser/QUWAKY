@@ -65,3 +65,12 @@ jobs:
             set -euo pipefail
             mkdir -p /srv/motoscope-api/Motoscope/motoscope-api/{migrations,seeds,ops}
 
+      - name: scp-upload-sql
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SSH_HOST_API }}
+          username: ${{ secrets.SSH_USER_API }}
+          key: ${{ secrets.SSH_KEY_API }}
+          port: ${{ secrets.SSH_PORT_API }}
+          source: "Motoscope/motoscope-api/schema.sql,Motoscope/motoscope-api/migrations/*,Motoscope/motoscope-api/seeds/*"
+          target: "/srv/motoscope-api/Motoscope/motoscope-api/"
