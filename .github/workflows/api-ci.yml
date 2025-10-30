@@ -28,6 +28,21 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: debug-print-path
+        run: |
+          pwd
+          ls -la
+          echo "---- Motoscope/motoscope-api ----"
+          ls -la Motoscope/motoscope-api || true
+          echo "---- show Dockerfile ----"
+          sed -n '1,120p' Motoscope/motoscope-api/Dockerfile
+
+      - name: debug-echo-tags
+        run: |
+          echo "owner_lc=${{ steps.names.outputs.owner_lc }}"
+          echo "will tag: ghcr.io/${{ steps.names.outputs.owner_lc }}/motoscope-api:latest"
+
+
       - name: build-push-image
         uses: docker/build-push-action@v6
         with:
