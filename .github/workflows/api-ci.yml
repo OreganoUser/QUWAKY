@@ -14,3 +14,10 @@ jobs:
 
       - name: checkout
         uses: actions/checkout@v4
+
+      - name: compute-owner
+        id: names
+        run: |
+          owner_lc="$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')"
+          echo "owner_lc=$owner_lc" >> "$GITHUB_OUTPUT"
+
