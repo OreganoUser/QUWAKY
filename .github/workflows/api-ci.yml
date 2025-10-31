@@ -1,32 +1,36 @@
-name: api-ci
+name: Build & Deploy Motoscope API (GHCR)
 
 on:
   push:
     branches: [ "main" ]
+    # uncomment to limit triggers to API changes only
+    # paths:
+    #   - "Motoscope/motoscope-api/**"
   workflow_dispatch: {}
 
 jobs:
-  ping:
+  deploy:
     runs-on: ubuntu-latest
-    steps:
-      - name: ping
-        run: echo "workflow syntax OK"
+    permissions:
+      contents: read
+      packages: write
 
+    steps:
       - name: checkout
         uses: actions/checkout@v4
 
-      - name: compute-owner
+      - name: compute-owner-lc (debug only)
         id: names
         run: |
           owner_lc="$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')"
           echo "owner_lc=$owner_lc" >> "$GITHUB_OUTPUT"
+          echo "owner_lc=$owner_lc"
 
-      # login with PAT
+      # ---- Build & push image to GHCR using PAT namespace ----
       - name: ghcr-login-with-pat
         run: |
           echo "${{ secrets.GHCR_PAT_API }}" | docker login ghcr.io -u "${{ secrets.GHCR_USER }}" --password-stdin
 
-      # build & push
       - name: build-push-image
         uses: docker/build-push-action@v6
         with:
@@ -34,23 +38,23 @@ jobs:
           file: ./Motoscope/motoscope-api/Dockerfile
           push: true
           provenance: false
+          outputs: type=registry
           tags: |
             ghcr.io/${{ secrets.GHCR_USER }}/motoscope-api:latest
             ghcr.io/${{ secrets.GHCR_USER }}/motoscope-api:${{ github.sha }}
-          outputs: type=registry
 
-
+      # ---- Ensure stack is up on server (compose v2, force recreate, no stale containers) ----
       - name: ssh-ensure-stack
         uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ secrets.SSH_HOST_API }}
-          username: ${{ secrets.SSH_USER_API }}
+          username: ${{ secrets.SSH_USER_API }}   # deploy
           key: ${{ secrets.SSH_KEY_API }}
           port: ${{ secrets.SSH_PORT_API }}
           script: |
             set -euo pipefail
-            echo "${{ secrets.GHCR_PAT_API }}" | docker login ghcr.io -u "${{ secrets.GHCR_USER }}" --password-stdin || true
 
+            echo "${{ secrets.GHCR_PAT_API }}" | docker login ghcr.io -u "${{ secrets.GHCR_USER }}" --password-stdin || true
             image="ghcr.io/${{ secrets.GHCR_USER }}/motoscope-api:latest"
             docker pull "$image"
 
@@ -63,16 +67,21 @@ jobs:
             fi
             echo "Using: $COMPOSE"
 
+            # stop old stack & remove stale containers that trigger ContainerConfig bug
             $COMPOSE -p motoscope-api down || true
             docker rm -f motoscope-api motoscope-api_db_1 2>/dev/null || true
 
+            # ensure host data dir perms for postgres
+            sudo mkdir -p /srv/postgres-data
+            sudo chown -R 999:999 /srv/postgres-data
+
+            # bring up fresh
             $COMPOSE -p motoscope-api up -d --remove-orphans --force-recreate
 
-            # show health
+            # show current containers
             docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
 
-
-
+      # ---- Prepare target dirs (guarantee flat structure) ----
       - name: ssh-prepare-dirs
         uses: appleboy/ssh-action@v1.2.0
         with:
@@ -84,8 +93,8 @@ jobs:
             set -euo pipefail
             mkdir -p /srv/motoscope-api/Motoscope/motoscope-api/{migrations,seeds,ops}
 
-      # upload schema.sql to project root
-      - name: "SCP - schema.sql"
+      # ---- Upload schema/migrations/seeds WITHOUT nesting ----
+      - name: scp-schema
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.SSH_HOST_API }}
@@ -94,30 +103,31 @@ jobs:
           port: ${{ secrets.SSH_PORT_API }}
           source: "Motoscope/motoscope-api/schema.sql"
           target: "/srv/motoscope-api/Motoscope/motoscope-api/"
+          strip_components: 2
 
-      # upload migrations into the top-level migrations dir
-      - name: "SCP - migrations"
+      - name: scp-migrations
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.SSH_HOST_API }}
           username: ${{ secrets.SSH_USER_API }}
           key: ${{ secrets.SSH_KEY_API }}
           port: ${{ secrets.SSH_PORT_API }}
-          source: "Motoscope/motoscope-api/migrations/*"
+          source: "Motoscope/motoscope-api/migrations/*.sql"
           target: "/srv/motoscope-api/Motoscope/motoscope-api/migrations"
+          strip_components: 2
 
-      # upload seeds into the top-level seeds dir
-      - name: "SCP - seeds"
+      - name: scp-seeds
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.SSH_HOST_API }}
           username: ${{ secrets.SSH_USER_API }}
           key: ${{ secrets.SSH_KEY_API }}
           port: ${{ secrets.SSH_PORT_API }}
-          source: "Motoscope/motoscope-api/seeds/*"
+          source: "Motoscope/motoscope-api/seeds/*.sql"
           target: "/srv/motoscope-api/Motoscope/motoscope-api/seeds"
+          strip_components: 2
 
-
+      # ---- Run migrations (wait for DB; no jq dependency) ----
       - name: ssh-run-migrations
         uses: appleboy/ssh-action@v1.2.0
         with:
@@ -129,26 +139,76 @@ jobs:
             set -euo pipefail
             cd /srv/motoscope-api/Motoscope/motoscope-api
 
-            # prefer docker compose v2
             if docker compose version >/dev/null 2>&1; then
               COMPOSE="docker compose"
             else
               COMPOSE="docker-compose"
             fi
 
-            # wait for db to be healthy
-            echo "Waiting for db to be healthy..."
-            for i in $(seq 1 40); do
-              if $COMPOSE ps --format json | jq -e '.[] | select(.Name=="motoscope-api_db_1") | .Health=="healthy"' >/dev/null 2>&1; then
-                echo "DB is healthy"; break
+            echo "Waiting for PostgreSQL to accept connections..."
+            for i in $(seq 1 60); do
+              if docker exec motoscope-api_db_1 pg_isready -U "${DB_USER:-motoscope_api}" -d "${DB_NAME:-motoscope}" >/dev/null 2>&1; then
+                echo "DB is ready"; break
               fi
               sleep 2
             done
 
-            # run migrator
+            # soft auto-flatten if someone nested paths again
+            for d in seeds migrations; do
+              if [ -d "$d/Motoscope/motoscope-api/$d" ]; then
+                echo "[migrate] Flattening nested $d/..."
+                mv -f "$d/Motoscope/motoscope-api/$d"/*.sql "$d/" 2>/dev/null || true
+                rm -rf "$d/Motoscope"
+              fi
+            done
+
             if [ ! -x ops/migrate.sh ]; then
-              echo "migrate.sh missing or not executable"; exit 1
-            fi
-            ./ops/migrate.sh
+              echo "[migrate] migrate.sh missing; creating helper..."
+              cat > ops/migrate.sh <<'EOF'
+              #!/usr/bin/env bash
+              set -euo pipefail
+              PSQL='docker compose exec -T db psql -U motoscope_api -d motoscope'
 
+              # bootstrap if empty
+              TABLE_COUNT=$($PSQL -qtAc "SELECT count(*) FROM information_schema.tables WHERE table_schema='public';")
+              if [ "$TABLE_COUNT" -eq 0 ]; then
+                echo "[migrate] Bootstrapping from schema.sql..."
+                $PSQL < schema.sql
+              fi
 
+              # migrations registry
+              $PSQL -c "CREATE TABLE IF NOT EXISTS schema_migrations (
+                id SERIAL PRIMARY KEY,
+                filename TEXT UNIQUE NOT NULL,
+                checksum TEXT NOT NULL,
+                applied_at TIMESTAMPTZ NOT NULL DEFAULT now()
+              );"
+
+              apply_dir () {
+                dir="$1"
+                [ -d "$dir" ] || return 0
+                for f in $(ls "$dir"/*.sql 2>/dev/null | sort); do
+                  [ -f "$f" ] || continue
+                  base=$(basename "$f")
+                  sum=$(sha256sum "$f" | awk '{print $1}')
+                  exists=$($PSQL -qtAc "SELECT 1 FROM schema_migrations WHERE filename='${base}' AND checksum='${sum}' LIMIT 1;")
+                  if [ "$exists" = "1" ]; then
+                    echo "[migrate] Skip ${base}"
+                    continue
+                  fi
+                  echo "[migrate] Applying ${base}..."
+                  $PSQL < "$f"
+                  $PSQL -c "INSERT INTO schema_migrations(filename, checksum)
+                            VALUES ('${base}','${sum}')
+                            ON CONFLICT (filename) DO UPDATE SET checksum=EXCLUDED.checksum, applied_at=now();"
+                done
+              }
+
+              apply_dir "migrations"
+              apply_dir "seeds"
+              echo "[migrate] Done."
+              EOF
+              chmod +x ops/migrate.sh
+              fi
+              
+              ./ops/migrate.sh
