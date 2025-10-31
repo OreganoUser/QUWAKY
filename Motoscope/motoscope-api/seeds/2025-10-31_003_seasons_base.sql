@@ -1,0 +1,9 @@
+BEGIN;
+
+INSERT INTO seasons (year) VALUES (2024)
+ON CONFLICT (year) DO NOTHING;
+
+INSERT INTO seasons (year) VALUES (2025)
+ON CONFLICT (year) DO NOTHING;
+
+COMMIT;
