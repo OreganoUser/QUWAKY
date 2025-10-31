@@ -93,7 +93,7 @@ jobs:
             set -euo pipefail
             mkdir -p /srv/motoscope-api/Motoscope/motoscope-api/{migrations,seeds,ops}
 
-      # ---- Upload schema/migrations/seeds WITHOUT nesting ----
+      # schema to project root (strip 2: Motoscope + motoscope-api)
       - name: scp-schema
         uses: appleboy/scp-action@v0.1.7
         with:
@@ -104,7 +104,9 @@ jobs:
           source: "Motoscope/motoscope-api/schema.sql"
           target: "/srv/motoscope-api/Motoscope/motoscope-api/"
           strip_components: 2
+          overwrite: true
 
+      # migrations into /.../migrations (strip 3: Motoscope + motoscope-api + migrations)
       - name: scp-migrations
         uses: appleboy/scp-action@v0.1.7
         with:
@@ -114,8 +116,10 @@ jobs:
           port: ${{ secrets.SSH_PORT_API }}
           source: "Motoscope/motoscope-api/migrations/*.sql"
           target: "/srv/motoscope-api/Motoscope/motoscope-api/migrations"
-          strip_components: 2
+          strip_components: 3
+          overwrite: true
 
+      # seeds into /.../seeds (strip 3: Motoscope + motoscope-api + seeds)
       - name: scp-seeds
         uses: appleboy/scp-action@v0.1.7
         with:
@@ -125,7 +129,9 @@ jobs:
           port: ${{ secrets.SSH_PORT_API }}
           source: "Motoscope/motoscope-api/seeds/*.sql"
           target: "/srv/motoscope-api/Motoscope/motoscope-api/seeds"
-          strip_components: 2
+          strip_components: 3
+          overwrite: true
+
 
       # ---- Run migrations (wait for DB; no jq dependency) ----
       - name: ssh-run-migrations
@@ -210,5 +216,5 @@ jobs:
               EOF
               chmod +x ops/migrate.sh
               fi
-              
+
               ./ops/migrate.sh
