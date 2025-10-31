@@ -103,9 +103,28 @@ jobs:
           port: ${{ secrets.SSH_PORT_API }}
           script: |
             set -euo pipefail
-            echo "${{ secrets.GHCR_PAT_API }}" | docker login ghcr.io -u "${{ secrets.GHCR_USER }}" --password-stdin
-            image="ghcr.io/${{ secrets.GHCR_USER }}/motoscope-api:latest"
-            docker pull "$image"
             cd /srv/motoscope-api/Motoscope/motoscope-api
-            docker-compose -p motoscope-api up -d
+
+            # prefer docker compose v2
+            if docker compose version >/dev/null 2>&1; then
+              COMPOSE="docker compose"
+            else
+              COMPOSE="docker-compose"
+            fi
+
+            # wait for db to be healthy
+            echo "Waiting for db to be healthy..."
+            for i in $(seq 1 40); do
+              if $COMPOSE ps --format json | jq -e '.[] | select(.Name=="motoscope-api_db_1") | .Health=="healthy"' >/dev/null 2>&1; then
+                echo "DB is healthy"; break
+              fi
+              sleep 2
+            done
+
+            # run migrator
+            if [ ! -x ops/migrate.sh ]; then
+              echo "migrate.sh missing or not executable"; exit 1
+            fi
+            ./ops/migrate.sh
+
 
