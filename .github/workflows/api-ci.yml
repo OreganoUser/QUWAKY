@@ -49,8 +49,6 @@ jobs:
           port: ${{ secrets.SSH_PORT_API }}
           script: |
             set -euo pipefail
-
-            # login to GHCR if package is private
             echo "${{ secrets.GHCR_PAT_API }}" | docker login ghcr.io -u "${{ secrets.GHCR_USER }}" --password-stdin || true
 
             image="ghcr.io/${{ secrets.GHCR_USER }}/motoscope-api:latest"
@@ -65,16 +63,14 @@ jobs:
             fi
             echo "Using: $COMPOSE"
 
-            # stop old stack and remove the old buggy containers
             $COMPOSE -p motoscope-api down || true
-            docker rm -f motoscope-api_db_1 motoscope-api 2>/dev/null || true
+            docker rm -f motoscope-api motoscope-api_db_1 2>/dev/null || true
 
-            # bring everything back up clean
             $COMPOSE -p motoscope-api up -d --remove-orphans --force-recreate
 
-            # quick health check
-            sleep 2
-            docker ps --format "table {{.Names}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}"
+            # show health
+            docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+
 
 
       - name: ssh-prepare-dirs
