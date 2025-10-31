@@ -106,11 +106,10 @@ jobs:
           key: ${{ secrets.SSH_KEY_API }}
           port: ${{ secrets.SSH_PORT_API }}
           script: |
-            script: |
-              set -euo pipefail
-              echo "${{ secrets.GHCR_PAT_API }}" | docker login ghcr.io -u "${{ secrets.GHCR_USER }}" --password-stdin
-              image="ghcr.io/${{ secrets.GHCR_USER }}/motoscope-api:latest"
-              docker pull "$image"
-              cd /srv/motoscope-api/Motoscope/motoscope-api
-              docker-compose -p motoscope-api up -d
+            set -euo pipefail
+            echo "${{ secrets.GHCR_PAT_API }}" | docker login ghcr.io -u "${{ secrets.GHCR_USER }}" --password-stdin
+            image="ghcr.io/${{ secrets.GHCR_USER }}/motoscope-api:latest"
+            docker pull "$image"
+            cd /srv/motoscope-api/Motoscope/motoscope-api
+            docker-compose -p motoscope-api up -d
 
