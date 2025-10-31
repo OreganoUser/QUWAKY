@@ -84,15 +84,39 @@ jobs:
             set -euo pipefail
             mkdir -p /srv/motoscope-api/Motoscope/motoscope-api/{migrations,seeds,ops}
 
-      - name: scp-upload-sql
+      # upload schema.sql to project root
+      - name: "SCP - schema.sql"
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.SSH_HOST_API }}
           username: ${{ secrets.SSH_USER_API }}
           key: ${{ secrets.SSH_KEY_API }}
           port: ${{ secrets.SSH_PORT_API }}
-          source: "Motoscope/motoscope-api/schema.sql,Motoscope/motoscope-api/migrations/*,Motoscope/motoscope-api/seeds/*"
+          source: "Motoscope/motoscope-api/schema.sql"
           target: "/srv/motoscope-api/Motoscope/motoscope-api/"
+
+      # upload migrations into the top-level migrations dir
+      - name: "SCP - migrations"
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SSH_HOST_API }}
+          username: ${{ secrets.SSH_USER_API }}
+          key: ${{ secrets.SSH_KEY_API }}
+          port: ${{ secrets.SSH_PORT_API }}
+          source: "Motoscope/motoscope-api/migrations/*"
+          target: "/srv/motoscope-api/Motoscope/motoscope-api/migrations"
+
+      # upload seeds into the top-level seeds dir
+      - name: "SCP - seeds"
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SSH_HOST_API }}
+          username: ${{ secrets.SSH_USER_API }}
+          key: ${{ secrets.SSH_KEY_API }}
+          port: ${{ secrets.SSH_PORT_API }}
+          source: "Motoscope/motoscope-api/seeds/*"
+          target: "/srv/motoscope-api/Motoscope/motoscope-api/seeds"
+
 
       - name: ssh-run-migrations
         uses: appleboy/ssh-action@v1.2.0
