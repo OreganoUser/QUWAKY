@@ -81,6 +81,20 @@ jobs:
             # show current containers
             docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
 
+      - name: debug-tree
+        run: |
+          pwd
+          ls -la
+          echo "---- Motoscope/motoscope-api ----"
+          ls -la Motoscope/motoscope-api || true
+          echo "---- migrations ----"
+          ls -la Motoscope/motoscope-api/migrations || true
+          echo "---- seeds ----"
+          ls -la Motoscope/motoscope-api/seeds || true
+          echo "---- ops ----"
+          ls -la Motoscope/motoscope-api/ops || true
+
+
       # ---- Prepare target dirs (guarantee flat structure) ----
       - name: ssh-prepare-dirs
         uses: appleboy/ssh-action@v1.2.0
@@ -93,7 +107,7 @@ jobs:
             set -euo pipefail
             mkdir -p /srv/motoscope-api/Motoscope/motoscope-api/{migrations,seeds,ops}
 
-      # schema to project root (strip 2: Motoscope + motoscope-api)
+      # schema (single file) — strip 2: Motoscope + motoscope-api
       - name: scp-schema
         uses: appleboy/scp-action@v0.1.7
         with:
@@ -106,18 +120,34 @@ jobs:
           strip_components: 2
           overwrite: true
 
-      # upload ops/migrate.sh (place it exactly, no nesting)
-      - name: scp-migrator
+      # migrations dir — strip 3: Motoscope + motoscope-api + migrations
+      - name: scp-migrations
+        if: ${{ hashFiles('Motoscope/motoscope-api/migrations/*.sql') != '' }}
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.SSH_HOST_API }}
           username: ${{ secrets.SSH_USER_API }}
           key: ${{ secrets.SSH_KEY_API }}
           port: ${{ secrets.SSH_PORT_API }}
-          source: "Motoscope/motoscope-api/ops/migrate.sh"
-          target: "/srv/motoscope-api/Motoscope/motoscope-api/ops"
+          source: "Motoscope/motoscope-api/migrations"
+          target: "/srv/motoscope-api/Motoscope/motoscope-api/migrations"
           strip_components: 3
           overwrite: true
+
+      # seeds dir — strip 3: Motoscope + motoscope-api + seeds
+      - name: scp-seeds
+        if: ${{ hashFiles('Motoscope/motoscope-api/seeds/*.sql') != '' }}
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SSH_HOST_API }}
+          username: ${{ secrets.SSH_USER_API }}
+          key: ${{ secrets.SSH_KEY_API }}
+          port: ${{ secrets.SSH_PORT_API }}
+          source: "Motoscope/motoscope-api/seeds"
+          target: "/srv/motoscope-api/Motoscope/motoscope-api/seeds"
+          strip_components: 3
+          overwrite: true
+
 
       # make sure it's executable + wait for DB health
       - name: ssh-prepare-migrate
