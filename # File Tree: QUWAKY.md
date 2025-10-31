@@ -1,12 +1,12 @@
 # File Tree: QUWAKY
 
-**Generated:** 30/10/2025, 11:31:58
+**Generated:** 31/10/2025, 11:46:58
 **Root Path:** `/Users/charel/Documents/QUWAKY`
 
 ```
 ├── 📁 .github
 │   └── 📁 workflows
-│       ├── ⚙️ deploy-api.yml
+│       ├── ⚙️ api-ci.yml
 │       └── ⚙️ deploy-site.yml
 ├── 📁 CSS
 │   └── 🎨 style.css
@@ -29,7 +29,11 @@
 │   │   │   ├── 📄 2025-10-28_002_circuits_base.sql
 │   │   │   ├── 📄 2025-10-28_003_teams_base.sql
 │   │   │   ├── 📄 2025-10-30_001_circuits_base.sql
-│   │   │   └── 📄 2025-10-30_001_seasons_base.sql
+│   │   │   ├── 📄 2025-10-30_001_seasons_base.sql
+│   │   │   ├── 📄 2025-10-31_001_riders_base.sql
+│   │   │   ├── 📄 2025-10-31_002_seasons_base.sql
+│   │   │   ├── 📄 2025-10-31_003_seasons_base.sql
+│   │   │   └── 📄 2025-10-31_004_seasons_base.sql
 │   │   ├── 📁 src
 │   │   │   ├── 📁 plugins
 │   │   │   │   └── 📄 apikey.js
@@ -59,7 +63,6 @@
 │   ├── 🖼️ noRagrets.jpeg
 │   ├── 🖼️ saba.jpeg
 │   └── 🖼️ sjs.jpeg
-├── 📝 # File Tree: QUWAKY.md
 └── 🌐 index.html
 ```
 
